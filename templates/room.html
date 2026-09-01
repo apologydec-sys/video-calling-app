@@ -452,6 +452,15 @@
         }
       }
 
+      function sendChatMessage(payload) {
+        if (socket.readyState !== WebSocket.OPEN) {
+          addChatMessage('System', 'Chat is reconnecting. Please try again.');
+          return false;
+        }
+        socket.send(JSON.stringify(payload));
+        return true;
+      }
+
       function updateMeetingBanner(text, type = 'success') {
         meetingBanner.classList.toggle('warning', type === 'warning');
         meetingBanner.innerHTML = `<span>${text}</span><span class="quality-indicator"><span class="quality-dot"></span>${type === 'warning' ? 'Fair' : 'Good'}</span>`;
@@ -605,15 +614,20 @@
       }
 
       socket.addEventListener('open', () => {
-        while (pendingSignals.length) {
-          socket.send(JSON.stringify(pendingSignals.shift()));
-        }
+        // Join first so the other peer is in the group before negotiation messages arrive.
         socket.send(JSON.stringify({
           type: 'join',
           room_code: roomCode,
           user_name: currentUserName,
         }));
+        while (pendingSignals.length) {
+          socket.send(JSON.stringify(pendingSignals.shift()));
+        }
         setStatus('Connected to room');
+      });
+
+      socket.addEventListener('error', () => {
+        setStatus('Signaling connection failed. Refresh and try again.', true);
       });
 
       socket.addEventListener('message', async (event) => {
@@ -704,12 +718,12 @@
         const message = chatInput.value.trim();
         if (!message) return;
 
-        socket.send(JSON.stringify({
+        if (!sendChatMessage({
           type: 'chat',
           user_name: currentUserName,
           message,
           room_code: roomCode,
-        }));
+        })) return;
 
         addChatMessage(currentUserName, message);
         chatInput.value = '';
