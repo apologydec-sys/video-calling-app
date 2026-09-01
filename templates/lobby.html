@@ -1,0 +1,323 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Akanni X | Lobby</title>
+    <link rel="manifest" href="{% static 'manifest.webmanifest' %}" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a2b;
+        --panel-strong: #1b2438;
+        --accent: #4f8cff;
+        --text: #edf3ff;
+        --muted: #a6b1c5;
+        --danger: #f87171;
+        --success: #34d399;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #0b1020, #111827);
+        color: var(--text);
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+      .shell {
+        width: min(1100px, 92vw);
+        background: rgba(17, 24, 39, 0.85);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+      .brand {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .meta-pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(79, 140, 255, 0.14);
+        border: 1px solid rgba(79, 140, 255, 0.3);
+        color: #dfeeff;
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 26px;
+      }
+      .preview,
+      .panel {
+        background: rgba(18, 26, 43, 0.9);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      .preview {
+        position: relative;
+        min-height: 520px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top, rgba(79,140,255,0.18), transparent 50%), #111827;
+      }
+      #videoPreview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #0d1320;
+        display: none;
+      }
+      .placeholder {
+        color: var(--muted);
+        text-align: center;
+        font-size: 1.1rem;
+      }
+      .controls {
+        position: absolute;
+        bottom: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 12px;
+      }
+      .icon-btn {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.08);
+        color: var(--text);
+        font-size: 1.2rem;
+        cursor: pointer;
+      }
+      .icon-btn.danger {
+        background: rgba(248, 113, 113, 0.18);
+        border-color: rgba(248, 113, 113, 0.3);
+      }
+      .panel {
+        padding: 22px;
+      }
+      h2 {
+        margin-top: 0;
+        margin-bottom: 16px;
+      }
+      .row {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      input, button {
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.08);
+        font: inherit;
+      }
+      input {
+        width: 100%;
+        padding: 12px 14px;
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 12px 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: rgba(255,255,255,0.06);
+        color: var(--text);
+        padding: 12px 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .status {
+        color: var(--muted);
+        font-size: 0.95rem;
+        min-height: 20px;
+      }
+      .status.success { color: var(--success); }
+      .status.error { color: var(--danger); }
+      .meta {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 760px) {
+        body { display: block; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+        .shell { width: 100%; margin: 0 auto; padding: 16px; border-radius: 18px; }
+        .topbar { align-items: flex-start; flex-direction: column; margin-bottom: 16px; }
+        .layout { grid-template-columns: 1fr; gap: 16px; }
+        .preview { min-height: min(68vh, 480px); }
+        .panel { padding: 18px; }
+        .icon-btn, button.primary, button.secondary { min-height: 48px; }
+      }
+
+      @media (max-width: 380px) {
+        .preview { min-height: 58vh; }
+        .controls { bottom: 12px; gap: 8px; }
+        .icon-btn { width: 48px; height: 48px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">Akanni X</div>
+        <div class="meta-pill" id="roomBadge">Room: {{ room.code }}</div>
+      </div>
+
+      <div class="layout">
+        <div class="preview">
+          <video id="videoPreview" autoplay muted playsinline></video>
+          <div id="placeholder" class="placeholder">Camera preview will appear here.</div>
+          <div class="controls">
+            <button id="toggleMic" class="icon-btn" title="Mute microphone">🎤</button>
+            <button id="toggleCam" class="icon-btn" title="Stop camera">📹</button>
+            <button id="toggleLeave" class="icon-btn danger" title="Leave lobby">✕</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Join a room</h2>
+          <div class="row">
+            <input id="displayName" placeholder="Your name" value="Guest" />
+            <button id="createRoomBtn" class="primary">Create room</button>
+            <button id="joinRoomBtn" class="secondary">Join with room code</button>
+            <input id="roomCodeInput" placeholder="Enter room code" value="{{ room.code }}" />
+            <button id="enterCallBtn" class="primary">Enter call</button>
+          </div>
+          <div id="status" class="status">Checking camera and microphone access…</div>
+          <div class="meta">
+            This is the pre-call lobby for a Zoom-like app. It verifies your media before joining a video call.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const video = document.getElementById('videoPreview');
+      const placeholder = document.getElementById('placeholder');
+      const statusEl = document.getElementById('status');
+      const roomCodeInput = document.getElementById('roomCodeInput');
+      const createRoomBtn = document.getElementById('createRoomBtn');
+      const joinRoomBtn = document.getElementById('joinRoomBtn');
+      const enterCallBtn = document.getElementById('enterCallBtn');
+      const displayNameInput = document.getElementById('displayName');
+
+      const state = {
+        stream: null,
+        micMuted: false,
+        camMuted: false,
+      };
+
+      async function ensureMedia() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          state.stream = stream;
+          video.srcObject = stream;
+          video.style.display = 'block';
+          placeholder.style.display = 'none';
+          statusEl.textContent = 'Camera and microphone are ready.';
+          statusEl.className = 'status success';
+        } catch (error) {
+          statusEl.textContent = 'Microphone/camera access was blocked. Grant permissions and refresh.';
+          statusEl.className = 'status error';
+        }
+      }
+
+      document.getElementById('toggleMic').addEventListener('click', () => {
+        if (!state.stream) return;
+        state.micMuted = !state.micMuted;
+        state.stream.getAudioTracks().forEach(track => {
+          track.enabled = !state.micMuted;
+        });
+        document.getElementById('toggleMic').textContent = state.micMuted ? '🔇' : '🎤';
+      });
+
+      document.getElementById('toggleCam').addEventListener('click', () => {
+        if (!state.stream) return;
+        state.camMuted = !state.camMuted;
+        state.stream.getVideoTracks().forEach(track => {
+          track.enabled = !state.camMuted;
+        });
+        document.getElementById('toggleCam').textContent = state.camMuted ? '📷' : '📹';
+      });
+
+      document.getElementById('toggleLeave').addEventListener('click', () => {
+        if (state.stream) {
+          state.stream.getTracks().forEach(track => track.stop());
+        }
+        statusEl.textContent = 'You left the lobby.';
+        statusEl.className = 'status';
+      });
+
+      createRoomBtn.addEventListener('click', async () => {
+        const title = `${displayNameInput.value || 'Guest'}'s room`;
+        const response = await fetch('/api/rooms/create/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ title })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          statusEl.textContent = data?.title?.[0] || 'Unable to create a room.';
+          statusEl.className = 'status error';
+          return;
+        }
+
+        const room = await response.json();
+        roomCodeInput.value = room.code;
+        statusEl.textContent = `Room created: ${room.code}`;
+        statusEl.className = 'status success';
+      });
+
+      const navigateToRoom = (code) => {
+        const safeCode = code.trim();
+        if (!safeCode) {
+          statusEl.textContent = 'Enter a room code first.';
+          statusEl.className = 'status error';
+          return;
+        }
+
+        statusEl.textContent = `Joining room ${safeCode}...`;
+        statusEl.className = 'status success';
+        window.location.href = `/room/${safeCode}/`;
+      };
+
+      joinRoomBtn.addEventListener('click', () => {
+        navigateToRoom(roomCodeInput.value);
+      });
+
+      enterCallBtn.addEventListener('click', () => {
+        navigateToRoom(roomCodeInput.value);
+      });
+
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('{% static "sw.js" %}');
+
+      ensureMedia();
+    </script>
+  </body>
+</html>

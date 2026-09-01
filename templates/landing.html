@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Akanni X</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}" />
+    <link rel="manifest" href="{% static 'manifest.webmanifest' %}" />
+    <meta name="theme-color" content="#071326" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+  </head>
+  <body>
+    <div class="landing-page">
+      <nav class="nav" aria-label="Main navigation">
+        <div class="brand">Akanni <span>X</span></div>
+
+        <div class="nav-links" aria-label="Navigation links">
+          <a href="/about/">About Me</a>
+          <a href="#">Talk</a>
+          <a href="#shareOptions" id="landingShareLink">Share</a>
+        </div>
+
+        <div class="nav-actions">
+          <button class="btn btn-ghost install-button" type="button" id="installAppBtn" hidden>Install app</button>
+          <button class="btn btn-primary" type="button" id="landingJoinBtn">Join now</button>
+        </div>
+      </nav>
+
+      <main class="hero">
+        <section class="hero-copy">
+          <div class="tagline">Better calls. Brighter you.</div>
+
+          <h1>
+            Connect
+            <span>Anywhere</span>
+          </h1>
+
+          <div class="divider"></div>
+
+          <div class="meta-row" aria-label="Call features">
+            <span>Talk</span>
+            <span>Share</span>
+            <span>Be Closer</span>
+          </div>
+
+          <div class="cta-row">
+            <button class="btn btn-primary" type="button" id="startMeetingBtn">Start Meeting</button>
+          </div>
+
+          <div class="cta-row" style="margin-top: 1.25rem; width: min(100%, 420px); flex-direction: column;">
+            <label style="font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(230,239,255,0.7);">Your name</label>
+            <input id="displayName" type="text" value="Guest" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(17,24,39,0.75); color: white; padding: 0.9rem 1rem;" />
+            <label style="font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(230,239,255,0.7);">Room code</label>
+            <input id="roomCodeInput" type="text" placeholder="Enter a code or leave blank to create one" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(17,24,39,0.75); color: white; padding: 0.9rem 1rem;" />
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <button class="btn btn-primary" type="button" id="createRoomBtn">Create room</button>
+              <button class="btn btn-ghost" type="button" id="joinRoomBtn">Join room</button>
+            </div>
+            <div id="landingStatus" style="min-height: 1.4rem; font-size: 0.8rem; color: rgba(232,240,255,0.7);"></div>
+            <div id="shareOptions" hidden style="width: 100%; padding-top: 0.4rem;">
+              <div style="font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(230,239,255,0.7); margin-bottom: 0.6rem;">Share Akanni X</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a class="btn btn-ghost" id="shareWhatsApp" target="_blank" rel="noopener">WhatsApp</a>
+                <a class="btn btn-ghost" id="shareX" target="_blank" rel="noopener">X</a>
+                <a class="btn btn-ghost" id="shareFacebook" target="_blank" rel="noopener">Facebook</a>
+                <a class="btn btn-ghost" id="shareEmail">Email</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="hero-media" aria-label="Portrait photo hero section">
+          <div class="media-panel">
+            <div class="person-badge badge-left">
+              <span>Better</span>
+              <span>Calls</span>
+              <span>A Brighter</span>
+              <span>You</span>
+            </div>
+
+            <div class="portrait-frame">
+              <div class="portrait-glow"></div>
+              <img
+                src="{% static 'ChatGPT Image Aug 31, 2026, 01_41_44 PM.png' %}"
+                alt="Person smiling during a video call"
+              />
+            </div>
+
+            <div class="signature">Connect<br />Anywhere</div>
+
+            <div class="person-badge badge-right">
+              <span>Video</span>
+              <span>Calls</span>
+              <span>Brings</span>
+              <span>People</span>
+              <span>Closer</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="{% static 'app.js' %}"></script>
+    <script>
+      const displayNameInput = document.getElementById('displayName');
+      const roomCodeInput = document.getElementById('roomCodeInput');
+      const landingStatus = document.getElementById('landingStatus');
+
+      const goToRoom = (code) => {
+        if (!code) return;
+        window.location.href = `/lobby/${code}/`;
+      };
+
+      const createRoom = async () => {
+        const title = `${(displayNameInput.value || 'Guest').trim()} Room`;
+        landingStatus.textContent = 'Creating your room...';
+        landingStatus.style.color = 'rgba(232,240,255,0.8)';
+
+        try {
+          const response = await fetch('/api/rooms/create/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ title })
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data?.title?.[0] || 'Unable to create the room.');
+          }
+
+          const room = await response.json();
+          goToRoom(room.code);
+        } catch (error) {
+          landingStatus.textContent = error.message || 'Something went wrong.';
+          landingStatus.style.color = '#fca5a5';
+        }
+      };
+
+      const joinRoom = () => {
+        const roomCode = (roomCodeInput.value || '').trim();
+        if (!roomCode) {
+          landingStatus.textContent = 'Enter a room code to join.';
+          landingStatus.style.color = '#fca5a5';
+          return;
+        }
+
+        goToRoom(roomCode);
+      };
+
+      document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+      document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
+      document.getElementById('landingJoinBtn').addEventListener('click', joinRoom);
+      document.getElementById('startMeetingBtn').addEventListener('click', createRoom);
+
+      let deferredInstallPrompt;
+      const installAppBtn = document.getElementById('installAppBtn');
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        installAppBtn.hidden = false;
+      });
+      installAppBtn.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        installAppBtn.hidden = true;
+      });
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('{% static "sw.js" %}');
+
+      const shareOptions = document.getElementById('shareOptions');
+      const shareUrl = encodeURIComponent(window.location.href);
+      const shareText = encodeURIComponent('Join me on Akanni X for a brighter call.');
+      document.getElementById('shareWhatsApp').href = `https://wa.me/?text=${shareText}%20${shareUrl}`;
+      document.getElementById('shareX').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+      document.getElementById('shareFacebook').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`;
+      document.getElementById('shareEmail').href = `mailto:?subject=Join me on Akanni X&body=${shareText}%20${shareUrl}`;
+      document.getElementById('landingShareLink').addEventListener('click', (event) => {
+        event.preventDefault();
+        shareOptions.hidden = !shareOptions.hidden;
+      });
+    </script>
+  </body>
+</html>
