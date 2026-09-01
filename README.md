@@ -39,6 +39,16 @@ This project is a Django + Channels starter for a Zoom-like video conferencing a
 
    python manage.py runserver
 
+For production, run the ASGI application so WebSocket signaling works:
+
+```bash
+daphne -b 0.0.0.0 -p $PORT zoom_app.asgi:application
+```
+
+Configure `REDIS_URL` in production so all application instances share the
+Channels room groups. For users on restrictive networks, also configure
+`TURN_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL` for a TURN server.
+
 5. Open the app:
 
    http://localhost:8000/

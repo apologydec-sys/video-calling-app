@@ -280,6 +280,25 @@ else:
     }
 
 
+# WebRTC uses TURN as a fallback when two devices cannot connect directly.
+WEBRTC_ICE_SERVERS = [
+    {"urls": "stun:stun.l.google.com:19302"},
+]
+
+TURN_URL = os.environ.get("TURN_URL")
+TURN_USERNAME = os.environ.get("TURN_USERNAME")
+TURN_CREDENTIAL = os.environ.get("TURN_CREDENTIAL")
+
+if TURN_URL and TURN_USERNAME and TURN_CREDENTIAL:
+    WEBRTC_ICE_SERVERS.append(
+        {
+            "urls": TURN_URL,
+            "username": TURN_USERNAME,
+            "credential": TURN_CREDENTIAL,
+        }
+    )
+
+
 # ============================================================
 # EMAIL / GMAIL SMTP
 # ============================================================

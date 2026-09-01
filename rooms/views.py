@@ -1,5 +1,7 @@
 import os
+import json
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
@@ -35,7 +37,16 @@ def lobby_page(request, room_code):
 
 def room_page(request, room_code):
     room = get_object_or_404(Room, code=room_code)
-    return render(request, "room.html", {"room": room})
+    ice_servers = getattr(
+        settings,
+        "WEBRTC_ICE_SERVERS",
+        [{"urls": "stun:stun.l.google.com:19302"}],
+    )
+    return render(
+        request,
+        "room.html",
+        {"room": room, "ice_servers": json.dumps(ice_servers)},
+    )
 
 
 # ============================================================
@@ -204,20 +215,7 @@ def send_room_invite(request, room_code):
     # Sender
     # --------------------------------------------------------
 
-    from_email = os.environ.get(
-        "DEFAULT_FROM_EMAIL"
-    )
-
-    if not from_email:
-        return Response(
-            {
-                "message": (
-                    "Email is not configured. "
-                    "Set DEFAULT_FROM_EMAIL."
-                )
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+    from_email = settings.DEFAULT_FROM_EMAIL
 
     # --------------------------------------------------------
     # Send email

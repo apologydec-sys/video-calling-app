@@ -391,6 +391,7 @@
       const localVideo = document.getElementById('localVideo');
       const remoteVideo = document.getElementById('remoteVideo');
       const roomCode = '{{ room.code }}';
+      const iceServers = {{ ice_servers|safe }};
       const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
       const socket = new WebSocket(`${wsProtocol}://${window.location.host}/ws/room/${roomCode}/`);
       const participantList = document.getElementById('participantList');
@@ -439,6 +440,17 @@
       let remoteUserJoined = false;
       let hasCreatedOffer = false;
       let remoteUserName = 'Guest';
+      const pendingIceCandidates = [];
+      const pendingSignals = [];
+      let mediaReadyPromise = null;
+
+      function sendSignal(payload) {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(payload));
+        } else {
+          pendingSignals.push(payload);
+        }
+      }
 
       function updateMeetingBanner(text, type = 'success') {
         meetingBanner.classList.toggle('warning', type === 'warning');
@@ -473,7 +485,7 @@
 
       function createPeerConnection() {
         const configuration = {
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+          iceServers: iceServers.length ? iceServers : [{ urls: 'stun:stun.l.google.com:19302' }],
         };
 
         peerConnection = new RTCPeerConnection(configuration);
@@ -487,17 +499,19 @@
 
         peerConnection.onicecandidate = (event) => {
           if (event.candidate) {
-            socket.send(JSON.stringify({
+            sendSignal({
               type: 'ice-candidate',
               room_code: roomCode,
               candidate: event.candidate,
-            }));
+            });
           }
         };
 
         peerConnection.onconnectionstatechange = () => {
           if (peerConnection.connectionState === 'connected') {
             setStatus('Connected');
+          } else if (['failed', 'disconnected'].includes(peerConnection.connectionState)) {
+            setStatus('Connection lost. Check your network or TURN settings.', true);
           }
         };
 
@@ -507,6 +521,9 @@
       }
 
       async function startLocalCamera() {
+        if (mediaReadyPromise) return mediaReadyPromise;
+
+        mediaReadyPromise = (async () => {
         try {
           localStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'user' },
@@ -526,44 +543,53 @@
           console.error('Unable to access media devices', error);
           setStatus('Camera/mic access denied', true);
         }
+        })();
+
+        return mediaReadyPromise;
       }
 
       async function sendOffer() {
         if (!peerConnection || hasCreatedOffer || !localStream) return;
 
-        hasCreatedOffer = true;
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        socket.send(JSON.stringify({
+        hasCreatedOffer = true;
+        sendSignal({
           type: 'offer',
           room_code: roomCode,
           offer: offer,
-        }));
+        });
       }
 
       async function handleIncomingOffer(offer) {
-        if (!peerConnection) {
-          createPeerConnection();
-        }
+        await startLocalCamera();
+        if (!localStream) return;
+        if (!peerConnection) createPeerConnection();
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        await flushPendingIceCandidates();
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
-        socket.send(JSON.stringify({
+        sendSignal({
           type: 'answer',
           room_code: roomCode,
           answer: answer,
-        }));
+        });
       }
 
       async function handleIncomingAnswer(answer) {
         if (!peerConnection) return;
         await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        await flushPendingIceCandidates();
       }
 
       async function handleIncomingIceCandidate(candidate) {
-        if (!peerConnection || !candidate) return;
+        if (!candidate) return;
+        if (!peerConnection || !peerConnection.remoteDescription) {
+          pendingIceCandidates.push(candidate);
+          return;
+        }
         try {
           await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (error) {
@@ -571,7 +597,17 @@
         }
       }
 
+      async function flushPendingIceCandidates() {
+        while (pendingIceCandidates.length && peerConnection?.remoteDescription) {
+          const candidate = pendingIceCandidates.shift();
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+      }
+
       socket.addEventListener('open', () => {
+        while (pendingSignals.length) {
+          socket.send(JSON.stringify(pendingSignals.shift()));
+        }
         socket.send(JSON.stringify({
           type: 'join',
           room_code: roomCode,
