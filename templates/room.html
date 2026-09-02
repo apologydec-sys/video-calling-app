@@ -587,10 +587,19 @@
 
         mediaReadyPromise = (async () => {
         try {
-          localStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user' },
-            audio: true,
-          });
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: 'user' },
+              audio: true,
+            });
+          } catch (combinedError) {
+            // Keep the call usable when one device permission is unavailable.
+            try {
+              localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (audioError) {
+              localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
+          }
 
           localVideo.srcObject = localStream;
 
@@ -601,7 +610,7 @@
           });
         } catch (error) {
           console.error('Unable to access media devices', error);
-          setStatus('Camera/mic access denied', true);
+          setStatus('Allow camera or microphone access, then refresh this page.', true);
         }
         })();
 
