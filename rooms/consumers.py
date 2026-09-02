@@ -8,6 +8,7 @@ class SignalingConsumer(WebsocketConsumer):
     def connect(self):
         self.room_code = self.scope["url_route"]["kwargs"].get("room_code")
         self.room_group_name = f"room_{self.room_code}"
+        self.peer_id = self.channel_name
         self.user_name = f"Guest-{self.channel_name[:5]}"
 
         async_to_sync(self.channel_layer.group_add)(self.room_group_name, self.channel_name)
@@ -18,6 +19,7 @@ class SignalingConsumer(WebsocketConsumer):
             "message": f"Connected to room {self.room_code}",
             "room_code": self.room_code,
             "user_name": self.user_name,
+            "peer_id": self.peer_id,
         }))
 
         async_to_sync(self.channel_layer.group_send)(
@@ -28,6 +30,7 @@ class SignalingConsumer(WebsocketConsumer):
                 "payload": {
                     "type": "presence",
                     "user_name": self.user_name,
+                    "peer_id": self.peer_id,
                     "status": "joined",
                 },
             },
@@ -42,6 +45,7 @@ class SignalingConsumer(WebsocketConsumer):
                 "payload": {
                     "type": "presence",
                     "user_name": self.user_name,
+                    "peer_id": self.peer_id,
                     "status": "left",
                 },
             },
@@ -60,7 +64,10 @@ class SignalingConsumer(WebsocketConsumer):
         if payload.get("user_name"):
             self.user_name = payload["user_name"]
 
-        if message_type in {"offer", "answer", "ice-candidate", "join", "leave", "chat", "presence"}:
+        payload["sender_id"] = self.peer_id
+        payload["sender_name"] = self.user_name
+
+        if message_type in {"offer", "answer", "ice-candidate", "peer-ready", "join", "leave", "chat", "presence"}:
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
                 {
@@ -77,6 +84,10 @@ class SignalingConsumer(WebsocketConsumer):
         sender_channel = event["sender_channel"]
 
         if sender_channel == self.channel_name:
+            return
+
+        target_id = payload.get("target_id")
+        if target_id and target_id != self.peer_id:
             return
 
         self.send(text_data=json.dumps(payload))

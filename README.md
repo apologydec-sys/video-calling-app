@@ -35,9 +35,9 @@ This project is a Django + Channels starter for a Zoom-like video conferencing a
    python manage.py makemigrations
    python manage.py migrate
 
-4. Run the development server:
+4. Run the ASGI development server (required for video-call signaling):
 
-   python manage.py runserver
+   daphne -b 127.0.0.1 -p 8000 zoom_app.asgi:application
 
 For production, run the ASGI application so WebSocket signaling works:
 
