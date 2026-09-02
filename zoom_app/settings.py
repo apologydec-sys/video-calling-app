@@ -50,6 +50,9 @@ if RENDER_EXTERNAL_HOSTNAME:
 # ============================================================
 
 INSTALLED_APPS = [
+    # ASGI development server with WebSocket support
+    "daphne",
+
     # Django
     "django.contrib.admin",
     "django.contrib.auth",

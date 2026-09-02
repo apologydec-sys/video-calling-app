@@ -49,6 +49,20 @@ Configure `REDIS_URL` in production so all application instances share the
 Channels room groups. For users on restrictive networks, also configure
 `TURN_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL` for a TURN server.
 
+Deployment checklist:
+
+- Use the included `Procfile` as the web service start command. It runs Daphne,
+   which is required for WebSocket signaling.
+- Deploy with HTTPS. Browsers block camera and microphone access on insecure
+   production pages.
+- Attach a Redis service and set `REDIS_URL`. This is required when the web
+   service can run more than one instance.
+- Set `TURN_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL` for reliable calls
+   between different networks. STUN alone may work locally but is not a
+   guaranteed production solution.
+- Set `RENDER_EXTERNAL_HOSTNAME` to the deployed hostname when deploying on
+   Render, or add your production hostname to `ALLOWED_HOSTS`.
+
 5. Open the app:
 
    http://localhost:8000/
